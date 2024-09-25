@@ -1,0 +1,192 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+contract CourseRegistration {
+    struct Course {
+        string name;
+        address[] Professors;
+        string ProfessorEmail;
+        string ProfessorPhone;
+        address ProfessorAddress;
+        string[] interestAreas;
+        uint courseCredits;
+        bool isAvailable;
+    }
+
+    struct Student {
+        string name;
+        address studentAddress;
+        uint dateOfBirth;
+        string currentEducation;
+        string email;
+        string phoneNumber;
+        uint courseCredits;
+        uint[] enrolledCourses;
+    }
+
+    struct Professor {
+        string name;
+        address ProfessorAddress;
+        string email;
+        string phoneNumber;
+        string[] interestAreas;
+        uint[] courseTaught;
+        mapping(uint => address[]) selectedStudents;
+    }
+
+    mapping (uint => Course ) public courses;
+    mapping (address => Student) public students;
+    mapping (address => Professor) public professors;
+    uint public courseCount;
+
+    event CourseCreated(uint courseId, string name, address[] professors);
+    event CourseEnrolled(address student, uint courseId);
+    event CourseAvailabilityUpdated(uint courseId, bool isAvailable);
+    event StudentRegistered(address student, string name);
+    event StudentSelected(address student, uint courseId, address professor);
+
+    function createCourse(
+        string memory _name,
+        address[] memory _professors,
+        string memory _professorEmail,
+        string memory _professorPhone,
+        address _professorAddress,
+        string[] memory _interestAreas,
+        uint _courseCredits
+    ) public {
+        courses[courseCount] = Course({
+            name: _name,
+            Professors: _professors,
+            ProfessorEmail: _professorEmail,
+            ProfessorPhone: _professorPhone,
+            ProfessorAddress: _professorAddress,
+            interestAreas: _interestAreas,
+            courseCredits: _courseCredits,
+            isAvailable: true
+        });
+        for (uint i = 0; i < _professors.length; i++) {
+            professors[_professors[i]].courseTaught.push(courseCount);
+        }
+        emit CourseCreated(courseCount, _name, _professors);
+        courseCount++;
+    }
+    function enrollInCourses(uint _courseId) public {
+        require(courses[_courseId].isAvailable, "Course not Available");
+        students[msg.sender].enrolledCourses.push(_courseId);
+        students[msg.sender].courseCredits += courses[_courseId].courseCredits;
+        emit CourseEnrolled(msg.sender, _courseId);
+    }
+    function updateCourseAvailability(uint _courseId, bool _isAvailable) public {
+        require(msg.sender == courses[_courseId].ProfessorAddress, "Only the professor can update availability");
+        courses[_courseId].isAvailable = _isAvailable;
+        emit CourseAvailabilityUpdated(_courseId, _isAvailable);
+    }
+    function registerStudent(
+        string memory _name,
+        uint _dateOfBirth,
+        string memory _currentEducation,
+        string memory _email,
+        string memory _phoneNumber
+    ) public {
+        students[msg.sender] = Student ({
+            name: _name,
+            studentAddress: msg.sender,
+            dateOfBirth: _dateOfBirth,
+            currentEducation: _currentEducation,
+            email: _email,
+            phoneNumber: _phoneNumber,
+            courseCredits: 0,
+            enrolledCourses: new uint[](0)
+        });
+        emit StudentRegistered(msg.sender, _name);
+    }
+    function registerProfessor (    
+        string memory _name,
+        string memory _email,
+        string memory _phoneNumber,
+        string[] memory _interestAreas
+    ) public {
+        Professor storage newProfessor = professors[msg.sender];
+            newProfessor.name = _name;
+            newProfessor.ProfessorAddress = msg.sender;
+            newProfessor.email = _email;
+            newProfessor.phoneNumber = _phoneNumber;
+            newProfessor.interestAreas = _interestAreas;
+            newProfessor.courseTaught = new uint[](0);
+    }
+
+    function selectedStudents(uint _courseId, address[] memory _students) public 
+    {
+        require(isCourseTeacher(_courseId, msg.sender), "Only the professor can select students");
+        for (uint i = 0; i < _students.length; i++) 
+        {
+            professors[msg.sender].selectedStudents[_courseId].push(_students[i]);
+            emit StudentSelected(_students[i], _courseId, msg.sender);
+        }
+    }
+
+    function getStudentDetails(address _student) public view returns (
+        string memory,
+        address,
+        uint,
+        string memory,
+        string memory,
+        string memory,
+        uint,
+        uint[] memory
+    ) {
+        Student memory student = students[_student];
+        return (
+            student.name,
+            student.studentAddress,
+            student.dateOfBirth,
+            student.currentEducation,
+            student.email,
+            student.phoneNumber,
+            student.courseCredits,
+            student.enrolledCourses
+        );
+    }
+
+    function getCourseDetails(uint _courseId) public view returns (
+        string memory,
+        address[] memory,
+        string memory,
+        string memory,
+        address,
+        string[] memory,
+        uint,
+        bool
+    ) {
+        Course memory course = courses[_courseId];
+        return (
+            course.name,
+            course.Professors,
+            course.ProfessorEmail,
+            course.ProfessorPhone,
+            course.ProfessorAddress,
+            course.interestAreas,
+            course.courseCredits,
+            course.isAvailable
+        );
+    }
+    function isCourseTeacherorAdmin(address _address) internal view returns(bool){
+        for (uint i =0; i < professors[_address].courseTaught.length ; i++) 
+        {
+            if (courses[courseCount].Professors[i] == _address) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function isCourseTeacher(uint _courseId, address _address)
+    internal view returns (bool) {
+        for (uint i =0; i < professors[_address].courseTaught.length ; i++){
+            if (professors[_address].courseTaught[i] == _courseId) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
