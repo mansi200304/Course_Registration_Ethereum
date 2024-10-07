@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import CourseRegistrationABI from './CourseRegistration.json';
 
-const contractAddress = 'YOUR_CONTRACT_ADDRESS'; // Replace with your deployed contract address
+const contractAddress = '0xDA0bab807633f07f013f94DD0E6A4F96F8742B53'; 
 
 function App() {
     const [provider, setProvider] = useState(null);
@@ -16,8 +16,6 @@ function App() {
     const [interestAreas, setInterestAreas] = useState('');
     const [courseCredits, setCourseCredits] = useState(0);
     const [isAvailable, setIsAvailable] = useState(true);
-
-    // Connection with Ethereum wallet
     const connectWallet = async () => {
         if (window.ethereum) {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -54,8 +52,6 @@ function App() {
             setCourses(coursesArray);
         }
     };
-
-    // Creating a new course
     const createCourse = async () => {
         if (contract) {
             try {
@@ -144,11 +140,6 @@ function App() {
 }
 
 export default App;
-
-
-
-
-
 import logo from './logo.svg';
 import './App.css';
 
